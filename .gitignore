@@ -1,9 +1,10 @@
-# Environment variables (contains secrets)
+# Environment variables
 .env
 
 # Python
 __pycache__/
 *.py[cod]
+*$py.class
 *.egg-info/
 dist/
 build/
@@ -18,6 +19,7 @@ env/
 .vscode/
 .idea/
 
-# Output files (generated at runtime)
-output/email_log.json
-output/audit_trail.csv
+# Output files
+outputs/
+*.xlsx
+*.log
