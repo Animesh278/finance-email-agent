@@ -1,6 +1,7 @@
-invoice_id,contact_name,amount,days_overdue
-1001,John Smith,$500.00,5
-1002,Sarah Johnson,$1250.50,12
-1003,Michael Brown,$75.25,25
-1004,Emily Davis,$3400.00,45
-1005,Robert Wilson,$150.00,0
+invoice_ref,client_name,email,balance,days_overdue
+INV-2023-001,Global Tech Solutions,finance@globaltech.com,12500,5
+INV-2023-002,North Star Logistics,accounts@northstar.co.uk,450,18
+INV-2023-003,Apex Innovations,billing@apexinno.io,75000,32
+INV-2023-004,Starlight Retail,contact@starlight.com,2100,47
+INV-2023-005,Riverstone Corp,payables@riverstone.net,890,2
+INV-2023-006,missing_email_corp,,500,10
