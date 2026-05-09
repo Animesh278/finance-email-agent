@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Finance Email Agent - Credit Follow-Up Dashboard</title>
+  <meta name="description" content="AI-powered credit follow-up email agent for overdue B2B invoices. Upload CSV, generate escalating payment reminders, and review audit trails.">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+  <div class="app-container">
+
+    <!-- Header -->
+    <header class="app-header" id="app-header">
+      <span class="app-header__icon">🏦</span>
+      <h1 class="app-header__title">Finance Credit Follow-Up Agent</h1>
+      <p class="app-header__subtitle">AI-powered payment reminder emails for overdue invoices</p>
+      <span class="app-header__badge app-header__badge--mock" id="mode-badge">
+        <span>⚡</span> Mock LLM Mode
+      </span>
+    </header>
+
+    <!-- Upload & Run Card -->
+    <section class="card upload-section" id="upload-section">
+      <h2 class="card__title">
+        <span class="card__title-icon">📁</span>
+        Load Invoice Data
+      </h2>
+
+      <!-- File upload zone -->
+      <div class="upload-zone" id="upload-zone" tabindex="0" role="button" aria-label="Upload CSV file">
+        <span class="upload-zone__icon" id="upload-icon">📄</span>
+        <p class="upload-zone__text" id="upload-text">Drop your CSV file here or click to browse</p>
+        <p class="upload-zone__hint">Supports .csv files with invoice data</p>
+        <p class="upload-zone__filename" id="upload-filename" style="display:none"></p>
+        <input type="file" id="csv-input" accept=".csv">
+      </div>
+
+      <div class="divider">or</div>
+
+      <!-- Sample data button -->
+      <button class="btn btn--sample" id="btn-sample" type="button">
+        <span>🧪</span>
+        Use Sample Data (6 test invoices)
+      </button>
+
+      <!-- Run button -->
+      <button class="btn btn--run" id="btn-run" type="button" disabled="">
+        <span class="spinner" id="run-spinner"></span>
+        <span class="btn__text" id="run-text">▶ Run Agent Pipeline</span>
+      </button>
+    </section>
+
+    <!-- Results Section -->
+    <section class="results-section" id="results-section">
+
+      <!-- Summary Dashboard -->
+      <div class="summary-grid" id="summary-grid">
+        <div class="stat-card stat-card--total">
+          <div class="stat-card__value" id="stat-total">0</div>
+          <div class="stat-card__label">Total Loaded</div>
+        </div>
+        <div class="stat-card stat-card--generated">
+          <div class="stat-card__value" id="stat-generated">0</div>
+          <div class="stat-card__label">Emails Generated</div>
+        </div>
+        <div class="stat-card stat-card--dry">
+          <div class="stat-card__value" id="stat-dry">0</div>
+          <div class="stat-card__label">Dry-Run Sent</div>
+        </div>
+        <div class="stat-card stat-card--escalated">
+          <div class="stat-card__value" id="stat-escalated">0</div>
+          <div class="stat-card__label">Escalated</div>
+        </div>
+        <div class="stat-card stat-card--skipped">
+          <div class="stat-card__value" id="stat-skipped">0</div>
+          <div class="stat-card__label">Skipped</div>
+        </div>
+        <div class="stat-card stat-card--errors">
+          <div class="stat-card__value" id="stat-errors">0</div>
+          <div class="stat-card__label">Errors</div>
+        </div>
+      </div>
+
+      <!-- Download Bar -->
+      <div class="download-bar" id="download-bar">
+        <span class="download-bar__label">📥 Export Results</span>
+        <a class="btn btn--download" id="dl-email-log" href="/api/download/email_log.json" download="">
+          📋 Email Log (JSON)
+        </a>
+        <a class="btn btn--download" id="dl-audit" href="/api/download/audit_trail.csv" download="">
+          📊 Audit Trail (CSV)
+        </a>
+      </div>
+
+      <!-- Tab Navigation -->
+      <div class="tabs" id="tabs" role="tablist">
+        <button class="tab tab--active" data-tab="emails" role="tab" aria-selected="true" id="tab-emails">
+          📧 Generated Emails
+        </button>
+        <button class="tab" data-tab="escalated" role="tab" aria-selected="false" id="tab-escalated">
+          🚨 Escalated
+        </button>
+        <button class="tab" data-tab="skipped" role="tab" aria-selected="false" id="tab-skipped">
+          ⏭ Skipped / Invalid
+        </button>
+      </div>
+
+      <!-- Tab Panels -->
+      <div class="tab-panel tab-panel--active" id="panel-emails" role="tabpanel">
+        <div class="email-list" id="email-list">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <div class="tab-panel" id="panel-escalated" role="tabpanel">
+        <div id="escalated-content">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <div class="tab-panel" id="panel-skipped" role="tabpanel">
+        <div id="skipped-content">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+    </section>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const DOM = {
+      uploadZone: document.getElementById('upload-zone'),
+      csvInput: document.getElementById('csv-input'),
+      uploadIcon: document.getElementById('upload-icon'),
+      uploadText: document.getElementById('upload-text'),
+      uploadFilename: document.getElementById('upload-filename'),
+      btnSample: document.getElementById('btn-sample'),
+      btnRun: document.getElementById('btn-run'),
+      runSpinner: document.getElementById('run-spinner'),
+      runText: document.getElementById('run-text'),
+      resultsSection: document.getElementById('results-section'),
+      emailList: document.getElementById('email-list'),
+      escalatedContent: document.getElementById('escalated-content'),
+      skippedContent: document.getElementById('skipped-content'),
+      toast: document.getElementById('toast'),
+      modeBadge: document.getElementById('mode-badge'),
+    };
+
+    let state = {
+      selectedFile: null,
+      useSample: false,
+      isRunning: false,
+    };
+
+    DOM.uploadZone.addEventListener('click', () => {
+      DOM.csvInput.click();
+    });
+
+    DOM.uploadZone.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        DOM.csvInput.click();
+      }
+    });
+
+    DOM.uploadZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      DOM.uploadZone.classList.add('upload-zone--active');
+    });
+
+    DOM.uploadZone.addEventListener('dragleave', () => {
+      DOM.uploadZone.classList.remove('upload-zone--active');
+    });
+
+    DOM.uploadZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      DOM.uploadZone.classList.remove('upload-zone--active');
+      const file = e.dataTransfer.files[0];
+      if (file && file.name.endsWith('.csv')) {
+        setSelectedFile(file);
+      } else {
+        showToast('Please drop a .csv file', 'error');
+      }
+    });
+
+    DOM.csvInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) setSelectedFile(file);
+    });
+
+    function setSelectedFile(file) {
+      state.selectedFile = file;
+      state.useSample = false;
+      DOM.uploadIcon.textContent = '✅';
+      DOM.uploadText.textContent = 'File selected:';
+      DOM.uploadFilename.textContent = file.name;
+      DOM.uploadFilename.style.display = 'block';
+      DOM.uploadZone.classList.add('upload-zone--active');
+      DOM.btnSample.style.opacity = '0.5';
+      DOM.btnRun.disabled = false;
+    }
+
+    DOM.btnSample.addEventListener('click', () => {
+      state.useSample = true;
+      state.selectedFile = null;
+      DOM.uploadIcon.textContent = '🧪';
+      DOM.uploadText.textContent = 'Using sample dataset';
+      DOM.uploadFilename.textContent = 'sample_invoices.csv (6 rows)';
+      DOM.uploadFilename.style.display = 'block';
+      DOM.uploadZone.classList.add('upload-zone--active');
+      DOM.btnSample.style.opacity = '1';
+      DOM.btnRun.disabled = false;
+      showToast('Sample data selected - ready to run!', 'success');
+    });
+
+    DOM.btnRun.addEventListener('click', async () => {
+      if (state.isRunning) return;
+      if (!state.selectedFile && !state.useSample) {
+        showToast('Please upload a CSV or select sample data first', 'error');
+        return;
+      }
+
+      state.isRunning = true;
+      DOM.btnRun.classList.add('btn--loading');
+      DOM.btnRun.disabled = true;
+      DOM.runText.textContent = 'Processing...';
+
+      try {
+        const formData = new FormData();
+        if (state.useSample) {
+          formData.append('use_sample', 'true');
+        } else {
+          formData.append('csv_file', state.selectedFile);
+        }
+
+        const response = await fetch('/api/run', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+          throw new Error(data.error || 'Pipeline failed');
+        }
+
+        renderResults(data);
+        showToast(`Pipeline complete! ${data.summary.emails_generated} emails generated.`, 'success');
+
+      } catch (err) {
+        showToast(`Error: ${err.message}`, 'error');
+        console.error('Pipeline error:', err);
+      } finally {
+        state.isRunning = false;
+        DOM.btnRun.classList.remove('btn--loading');
+        DOM.btnRun.disabled = false;
+        DOM.runText.textContent = '▶ Run Agent Pipeline';
+      }
+    });
+
+    function renderResults(data) {
+      const { summary, emails, escalated, invalid } = data;
+
+      if (summary.is_mock) {
+        DOM.modeBadge.className = 'app-header__badge app-header__badge--mock';
+        DOM.modeBadge.innerHTML = '<span>⚡</span> Mock LLM Mode';
+      } else {
+        DOM.modeBadge.className = 'app-header__badge app-header__badge--live';
+        DOM.modeBadge.innerHTML = '<span>🤖</span> Claude API Mode';
+      }
+
+      animateCounter('stat-total', summary.total_loaded);
+      animateCounter('stat-generated', summary.emails_generated);
+      animateCounter('stat-dry', summary.emails_dry_run);
+      animateCounter('stat-escalated', summary.escalated_count);
+      animateCounter('stat-skipped', summary.invalid_count);
+      animateCounter('stat-errors', summary.error_count);
+
+      renderEmails(emails);
+      renderEscalated(escalated);
+      renderSkipped(invalid);
+
+      DOM.resultsSection.classList.add('results-section--visible');
+
+      setTimeout(() => {
+        DOM.resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+
+    function animateCounter(elementId, target) {
+      const el = document.getElementById(elementId);
+      const duration = 600;
+      const start = performance.now();
+      const from = 0;
+
+      function update(now) {
+        const elapsed = now - start;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        el.textContent = Math.round(from + (target - from) * eased);
+        if (progress < 1) requestAnimationFrame(update);
+      }
+
+      requestAnimationFrame(update);
+    }
+
+    const TONE_LABELS = {
+      warm_friendly: 'Warm & Friendly',
+      polite_firm: 'Polite & Firm',
+      formal_serious: 'Formal & Serious',
+      stern_urgent: 'Stern & Urgent',
+      legal_escalation: 'Legal Escalation',
+    };
+
+    function renderEmails(emails) {
+      if (emails.length === 0) {
+        DOM.emailList.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state__icon">📭</div>
+            <p class="empty-state__text">No emails were generated. All invoices may be escalated or filtered out.</p>
+          </div>`;
+        return;
+      }
+
+      DOM.emailList.innerHTML = emails.map((email, i) => `
+        <div class="email-card" id="email-card-${i}">
+          <div class="email-card__header" onclick="toggleEmail(${i})">
+            <div class="email-card__info">
+              <div class="email-card__client">${escapeHtml(email.client_name)}</div>
+              <div class="email-card__meta">
+                <span>📋 ${escapeHtml(email.invoice_number)}</span>
+                <span>💰 ${escapeHtml(email.amount_due)}</span>
+                <span>📅 ${email.days_overdue} days overdue</span>
+                <span>📧 ${escapeHtml(email.contact_email)}</span>
+              </div>
+            </div>
+            <span class="stage-badge stage-badge--${email.stage}">
+              Stage ${email.stage} · ${TONE_LABELS[email.tone_used] || email.tone_used}
+            </span>
+            <span class="email-card__toggle">▼</span>
+          </div>
+          <div class="email-card__body">
+            <div class="email-card__subject">📨 ${escapeHtml(email.subject)}</div>
+            <div class="email-card__content">${escapeHtml(email.body)}</div>
+            <div class="email-card__justification">💡 ${escapeHtml(email.justification)}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function toggleEmail(index) {
+      const card = document.getElementById(`email-card-${index}`);
+      card.classList.toggle('email-card--expanded');
+    }
+
+    function renderEscalated(escalated) {
+      if (escalated.length === 0) {
+        DOM.escalatedContent.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state__icon">✅</div>
+            <p class="empty-state__text">No invoices were escalated to legal. All overdue invoices are within the 30-day follow-up window.</p>
+          </div>`;
+        return;
+      }
+
+      DOM.escalatedContent.innerHTML = `
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Invoice</th>
+              <th>Client</th>
+              <th>Amount</th>
+              <th>Days Overdue</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${escalated.map(row => `
+              <tr>
+                <td>${escapeHtml(row.invoice_number)}</td>
+                <td>${escapeHtml(row.client_name)}</td>
+                <td>${escapeHtml(row.amount_due)}</td>
+                <td><strong style="color: var(--accent-rose)">${row.days_overdue}</strong></td>
+                <td><span class="stage-badge stage-badge--escalate">🚨 Legal Escalation</span></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>`;
+    }
+
+    function renderSkipped(invalid) {
+      if (invalid.length === 0) {
+        DOM.skippedContent.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state__icon">👍</div>
+            <p class="empty-state__text">All rows in the CSV were valid and processed successfully.</p>
+          </div>`;
+        return;
+      }
+
+      DOM.skippedContent.innerHTML = `
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Invoice</th>
+              <th>Client</th>
+              <th>Reason</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${invalid.map(row => `
+              <tr>
+                <td>${escapeHtml(row.invoice_number)}</td>
+                <td>${escapeHtml(row.client_name)}</td>
+                <td style="color: var(--accent-amber)">${escapeHtml(row.reason)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>`;
+    }
+
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => {
+          t.classList.remove('tab--active');
+          t.setAttribute('aria-selected', 'false');
+        });
+        document.querySelectorAll('.tab-panel').forEach(p => {
+          p.classList.remove('tab-panel--active');
+        });
+
+        tab.classList.add('tab--active');
+        tab.setAttribute('aria-selected', 'true');
+        const panelId = `panel-${tab.dataset.tab}`;
+        document.getElementById(panelId).classList.add('tab-panel--active');
+      });
+    });
+
+    let toastTimeout = null;
+    function showToast(message, type = 'success') {
+      clearTimeout(toastTimeout);
+      DOM.toast.textContent = message;
+      DOM.toast.className = `toast toast--${type} toast--visible`;
+      toastTimeout = setTimeout(() => {
+        DOM.toast.classList.remove('toast--visible');
+      }, 4000);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      const div = document.createElement('div');
+      div.textContent = String(str);
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>
