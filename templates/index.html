@@ -1,423 +1,436 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
+<html lang="en"><head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Credit Follow-Up Dashboard</title>
-  <meta name="description" content="Credit follow-up email agent for overdue B2B invoices. Upload CSV, generate payment reminders, and review audit trails.">
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-
+  <title>LEDGER//OPS — Mission Control for Collections</title>
+  <meta name="description" content="Autonomous credit-ops agent that reads overdue ledgers, classifies risk, and drafts tone-escalating reminders.">
   <link rel="stylesheet" href="/static/style.css">
 </head>
-<body>
+<body class="">
 
-  <div class="app-container">
+  <!-- NAVBAR -->
+  <nav class="navbar" id="navbar">
+    <a href="#" class="navbar__brand">
+      <span class="navbar__dot"></span>
+      LEDGER//OPS
+      <span class="navbar__version">v3.14.1</span>
+    </a>
+    <ul class="navbar__links">
+      <li><a href="#system" class="navbar__link">01 / System</a></li>
+      <li><a href="#pipeline" class="navbar__link">02 / Pipeline</a></li>
+      <li><a href="#results" class="navbar__link">03 / Results</a></li>
+    </ul>
+    <button class="navbar__launch" id="nav-launch" type="button">Launch →</button>
+  </nav>
 
-    <header class="app-header" id="app-header">
-      <h1 class="app-header__title">Credit Follow-Up Dashboard</h1>
-      <p class="app-header__subtitle">Automated payment reminder emails for overdue invoices</p>
-      <span class="app-header__badge app-header__badge--live" id="mode-badge">Gemini API</span>
-    </header>
+  <!-- HERO -->
+  <section class="hero" id="hero">
+    <div>
+      <div class="hero__status">
+        <span class="hero__status-dot"></span>
+        <span id="hero-status-text">SYSTEM ONLINE · READY FOR INGEST</span>
+      </div>
+      <h1 class="hero__title">
+        COLLECT<br>FASTER.<br>
+        <span class="hero__title-dim">ESCALATE</span><br>
+        <span class="hero__title-accent">SMARTER.</span>
+      </h1>
+      <p class="hero__desc">
+        An autonomous credit-ops agent that reads your overdue ledger,
+        classifies risk in milliseconds, and drafts tone-escalating reminders
+        that recover cash without torching customer relationships.
+      </p>
+      <div class="hero__actions">
+        <button class="btn-primary" id="btn-launch" type="button">Launch Pipeline →</button>
+        <button class="btn-secondary" id="btn-sample" type="button">Use Sample Data</button>
+      </div>
+    </div>
+    <div>
+      <div class="terminal" id="hero-terminal">
+        <div class="terminal__header">
+          <span>&gt;_ SESSION: COLLECTIONS-01 · TTY</span>
+          <div class="terminal__dots"><span></span><span></span><span></span></div>
+        </div>
+        <div class="terminal__body" id="terminal-body">
+          <div class="terminal__line terminal__line--cmd">ledger ingest invoices.csv</div>
+          <div class="terminal__line">&gt; parsed 6 rows · 0 invalid · 6 in pipeline</div>
+          <div class="terminal__line terminal__line--cmd">ledger triage --stage auto</div>
+          <div class="terminal__line terminal__line--green">Stage 1 · gentle · 2</div>
+          <div class="terminal__line terminal__line--green">Stage 2 · firm · 1</div>
+          <div class="terminal__line terminal__line--amber">Stage 3 · urgent · 1</div>
+          <div class="terminal__line terminal__line--amber">Stage 4 · final · 1</div>
+          <div class="terminal__line terminal__line--red">legal escalation · 1</div>
+        </div>
+        <div class="terminal__footer">
+          <span class="terminal__footer-status" id="mode-badge">CONNECTED · GEMINI-2.0-FLASH</span>
+          <span>CPU 4% · MEM 18MB</span>
+        </div>
+      </div>
+    </div>
+  </section>
 
-    <section class="card upload-section" id="upload-section">
-      <h2 class="card__title">
-        Load Invoice Data
-      </h2>
-
-      <div class="upload-zone" id="upload-zone" tabindex="0" role="button" aria-label="Upload CSV file">
-        <span class="upload-zone__icon" id="upload-icon">📁</span>
-        <p class="upload-zone__text" id="upload-text">Select or drop invoice CSV</p>
-        <p class="upload-zone__hint">Accepts .csv files with invoice data</p>
-        <p class="upload-zone__filename" id="upload-filename" style="display: none;"></p>
+  <!-- UPLOAD SECTION (hidden until Launch clicked) -->
+  <section class="upload-section" id="upload-section">
+    <div class="section-label">
+      <span class="section-label__num">[01]</span> DATA INGEST
+    </div>
+    <div class="upload-grid">
+      <div class="upload-card" id="upload-csv-card" tabindex="0">
+        <div class="upload-card__label">SOURCE // 01</div>
+        <div class="upload-card__title">Upload CSV</div>
+        <div class="upload-card__desc">Drop a CSV file with invoice data. The agent normalizes rows, flags malformed records, and produces a clean ledger snapshot.</div>
+        <div class="upload-card__file" id="upload-filename" style="display:none"></div>
         <input type="file" id="csv-input" accept=".csv">
       </div>
-
-      <div class="divider">or</div>
-
-      <button class="btn btn--sample" id="btn-sample" type="button">
-        Use Sample Data (6 test invoices)
-      </button>
-
-      <button class="btn btn--run" id="btn-run" type="button" disabled>
+      <div class="upload-card" id="upload-sample-card" tabindex="0">
+        <div class="upload-card__label">SOURCE // 02</div>
+        <div class="upload-card__title">Sample Ledger</div>
+        <div class="upload-card__desc">Load 6 test invoices across all 4 escalation stages. Includes warm, firm, urgent, final, and legal-escalation records.</div>
+        <div class="upload-card__file" id="sample-status" style="display:none"></div>
+      </div>
+    </div>
+    <div class="run-bar">
+      <button class="btn-primary" id="btn-run" type="button" disabled="">
         <span class="spinner" id="run-spinner"></span>
-        <span class="btn__text" id="run-text">Run Pipeline</span>
+        <span id="run-text">Execute Pipeline</span>
       </button>
-    </section>
+      <span class="run-bar__status" id="run-status">Select a data source to begin</span>
+    </div>
+  </section>
 
-    <section class="results-section" id="results-section">
+  <!-- RESULTS -->
+  <section class="stats-section" id="results-section">
+    <div class="section-label">
+      <span class="section-label__num">[02]</span> PIPELINE OUTPUT
+    </div>
+    <div class="section-title">
+      Results <span class="accent">live.</span>
+    </div>
 
-      <div class="summary-grid" id="summary-grid">
-        <div class="stat-card stat-card--total">
-          <div class="stat-card__value" id="stat-total">0</div>
-          <div class="stat-card__label">Loaded</div>
-        </div>
-        <div class="stat-card stat-card--generated">
-          <div class="stat-card__value" id="stat-generated">0</div>
-          <div class="stat-card__label">Generated</div>
-        </div>
-        <div class="stat-card stat-card--dry">
-          <div class="stat-card__value" id="stat-dry">0</div>
-          <div class="stat-card__label">Dry-Run</div>
-        </div>
-        <div class="stat-card stat-card--escalated">
-          <div class="stat-card__value" id="stat-escalated">0</div>
-          <div class="stat-card__label">Escalated</div>
-        </div>
-        <div class="stat-card stat-card--skipped">
-          <div class="stat-card__value" id="stat-skipped">0</div>
-          <div class="stat-card__label">Skipped</div>
-        </div>
-        <div class="stat-card stat-card--errors">
-          <div class="stat-card__value" id="stat-errors">0</div>
-          <div class="stat-card__label">Errors</div>
-        </div>
+    <div class="stats-grid" id="stats-grid">
+      <div class="stat stat--total">
+        <div class="stat__value" id="stat-total">0</div>
+        <div class="stat__label">Loaded</div>
       </div>
-
-      <div class="download-bar" id="download-bar">
-        <span class="download-bar__label">Export</span>
-        <a class="btn btn--download" id="dl-email-log" href="/api/download/email_log.json" download>
-          Email Log (JSON)
-        </a>
-        <a class="btn btn--download" id="dl-audit" href="/api/download/audit_trail.csv" download>
-          Audit Trail (CSV)
-        </a>
+      <div class="stat stat--generated">
+        <div class="stat__value" id="stat-generated">0</div>
+        <div class="stat__label">Generated</div>
       </div>
-
-      <div class="tabs" id="tabs" role="tablist">
-        <button class="tab tab--active" data-tab="emails" role="tab" aria-selected="true" id="tab-emails">
-          Generated Emails
-        </button>
-        <button class="tab" data-tab="escalated" role="tab" aria-selected="false" id="tab-escalated">
-          Escalated
-        </button>
-        <button class="tab" data-tab="skipped" role="tab" aria-selected="false" id="tab-skipped">
-          Skipped
-        </button>
+      <div class="stat stat--dry">
+        <div class="stat__value" id="stat-dry">0</div>
+        <div class="stat__label">Dry-Run</div>
       </div>
-
-      <div class="tab-panel tab-panel--active" id="panel-emails" role="tabpanel">
-        <div class="email-list" id="email-list"></div>
+      <div class="stat stat--escalated">
+        <div class="stat__value" id="stat-escalated">0</div>
+        <div class="stat__label">Escalated</div>
       </div>
-
-      <div class="tab-panel" id="panel-escalated" role="tabpanel">
-        <div id="escalated-content"></div>
+      <div class="stat stat--skipped">
+        <div class="stat__value" id="stat-skipped">0</div>
+        <div class="stat__label">Skipped</div>
       </div>
-
-      <div class="tab-panel" id="panel-skipped" role="tabpanel">
-        <div id="skipped-content"></div>
+      <div class="stat stat--errors">
+        <div class="stat__value" id="stat-errors">0</div>
+        <div class="stat__label">Errors</div>
       </div>
+    </div>
 
-    </section>
-  </div>
+    <div class="download-bar">
+      <span class="download-bar__label">Export</span>
+      <a class="btn-download" href="/api/download/email_log.json" download="">email_log.json</a>
+      <a class="btn-download" href="/api/download/audit_trail.csv" download="">audit_trail.csv</a>
+    </div>
+
+    <div class="tabs-bar" id="tabs">
+      <button class="tab-btn tab-btn--active" data-tab="emails" id="tab-emails">Generated</button>
+      <button class="tab-btn" data-tab="escalated" id="tab-escalated">Escalated</button>
+      <button class="tab-btn" data-tab="skipped" id="tab-skipped">Skipped</button>
+    </div>
+
+    <div class="tab-panel tab-panel--active" id="panel-emails">
+      <div class="email-list" id="email-list"></div>
+    </div>
+    <div class="tab-panel" id="panel-escalated">
+      <div id="escalated-content"></div>
+    </div>
+    <div class="tab-panel" id="panel-skipped">
+      <div id="skipped-content"></div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer__grid">
+      <div>
+        <div class="footer__brand">
+          <span class="footer__brand-dot"></span> LEDGER//OPS
+        </div>
+        <p class="footer__tagline">Autonomous credit operations for teams that would rather close books than chase inboxes.</p>
+      </div>
+      <div>
+        <div class="footer__col-title">System</div>
+        <a href="#system" class="footer__link">Capabilities</a>
+        <a href="#pipeline" class="footer__link">Pipeline</a>
+        <a href="#results" class="footer__link">Results</a>
+      </div>
+      <div>
+        <div class="footer__col-title">Telemetry</div>
+        <a href="#" class="footer__link">Metrics</a>
+        <a href="#" class="footer__link">Audit Trail</a>
+        <a href="#" class="footer__link">FAQ</a>
+      </div>
+      <div>
+        <div class="footer__col-title">Secure</div>
+        <a href="#" class="footer__link">PII Masking</a>
+        <a href="#" class="footer__link">Pydantic Validation</a>
+        <a href="#" class="footer__link">Dry-Run Default</a>
+      </div>
+    </div>
+    <div class="footer__bottom">
+      <span>© 2026 LEDGER//OPS · MISSION CONTROL FOR COLLECTIONS</span>
+      <span class="footer__uptime">UPTIME 99.992% · LAST PING 0.1S AGO</span>
+    </div>
+  </footer>
 
   <div class="toast" id="toast"></div>
 
   <script>
     const DOM = {
-      uploadZone: document.getElementById('upload-zone'),
-      csvInput: document.getElementById('csv-input'),
-      uploadIcon: document.getElementById('upload-icon'),
-      uploadText: document.getElementById('upload-text'),
-      uploadFilename: document.getElementById('upload-filename'),
+      btnLaunch: document.getElementById('btn-launch'),
+      navLaunch: document.getElementById('nav-launch'),
       btnSample: document.getElementById('btn-sample'),
+      uploadSection: document.getElementById('upload-section'),
+      uploadCsvCard: document.getElementById('upload-csv-card'),
+      uploadSampleCard: document.getElementById('upload-sample-card'),
+      csvInput: document.getElementById('csv-input'),
+      uploadFilename: document.getElementById('upload-filename'),
+      sampleStatus: document.getElementById('sample-status'),
       btnRun: document.getElementById('btn-run'),
-      runSpinner: document.getElementById('run-spinner'),
       runText: document.getElementById('run-text'),
+      runSpinner: document.getElementById('run-spinner'),
+      runStatus: document.getElementById('run-status'),
       resultsSection: document.getElementById('results-section'),
       emailList: document.getElementById('email-list'),
       escalatedContent: document.getElementById('escalated-content'),
       skippedContent: document.getElementById('skipped-content'),
       toast: document.getElementById('toast'),
       modeBadge: document.getElementById('mode-badge'),
+      heroStatus: document.getElementById('hero-status-text'),
+      terminalBody: document.getElementById('terminal-body'),
     };
 
-    let state = {
-      selectedFile: null,
-      useSample: false,
-      isRunning: false,
-    };
+    let state = { selectedFile: null, useSample: false, isRunning: false };
 
-    DOM.uploadZone.addEventListener('click', () => {
-      DOM.csvInput.click();
+    // Launch buttons -> show upload section
+    function showUpload() {
+      DOM.uploadSection.classList.add('upload-section--visible');
+      DOM.uploadSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    DOM.btnLaunch.addEventListener('click', showUpload);
+    DOM.navLaunch.addEventListener('click', showUpload);
+
+    // Quick sample from hero
+    DOM.btnSample.addEventListener('click', function() {
+      showUpload();
+      setTimeout(function() { selectSample(); }, 300);
     });
 
-    DOM.uploadZone.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        DOM.csvInput.click();
-      }
-    });
-
-    DOM.uploadZone.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      DOM.uploadZone.classList.add('upload-zone--active');
-    });
-
-    DOM.uploadZone.addEventListener('dragleave', () => {
-      DOM.uploadZone.classList.remove('upload-zone--active');
-    });
-
-    DOM.uploadZone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      DOM.uploadZone.classList.remove('upload-zone--active');
-      const file = e.dataTransfer.files[0];
-      if (file && file.name.endsWith('.csv')) {
-        setSelectedFile(file);
-      } else {
-        showToast('Please drop a .csv file', 'error');
-      }
-    });
-
-    DOM.csvInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (file) setSelectedFile(file);
-    });
-
-    function setSelectedFile(file) {
+    // CSV upload card
+    DOM.uploadCsvCard.addEventListener('click', function() { DOM.csvInput.click(); });
+    DOM.csvInput.addEventListener('change', function(e) {
+      var file = e.target.files[0];
+      if (!file) return;
       state.selectedFile = file;
       state.useSample = false;
-      DOM.uploadIcon.textContent = '✓';
-      DOM.uploadText.textContent = 'File selected:';
+      DOM.uploadCsvCard.classList.add('upload-card--active');
+      DOM.uploadSampleCard.classList.remove('upload-card--active');
       DOM.uploadFilename.textContent = file.name;
       DOM.uploadFilename.style.display = 'block';
-      DOM.uploadZone.classList.add('upload-zone--active');
-      DOM.btnSample.style.opacity = '0.5';
+      DOM.sampleStatus.style.display = 'none';
       DOM.btnRun.disabled = false;
-    }
-
-    DOM.btnSample.addEventListener('click', () => {
-      state.useSample = true;
-      state.selectedFile = null;
-      DOM.uploadIcon.textContent = '✓';
-      DOM.uploadText.textContent = 'Using sample dataset';
-      DOM.uploadFilename.textContent = 'sample_invoices.csv (6 rows)';
-      DOM.uploadFilename.style.display = 'block';
-      DOM.uploadZone.classList.add('upload-zone--active');
-      DOM.btnSample.style.opacity = '1';
-      DOM.btnRun.disabled = false;
-      showToast('Sample data selected', 'success');
+      DOM.runStatus.textContent = 'Ready: ' + file.name;
     });
 
-    DOM.btnRun.addEventListener('click', async () => {
-      if (state.isRunning) return;
-      if (!state.selectedFile && !state.useSample) {
-        showToast('Upload a CSV or select sample data first', 'error');
-        return;
-      }
+    // Sample card
+    DOM.uploadSampleCard.addEventListener('click', selectSample);
+    function selectSample() {
+      state.useSample = true;
+      state.selectedFile = null;
+      DOM.uploadSampleCard.classList.add('upload-card--active');
+      DOM.uploadCsvCard.classList.remove('upload-card--active');
+      DOM.sampleStatus.textContent = 'sample_invoices.csv (6 rows)';
+      DOM.sampleStatus.style.display = 'block';
+      DOM.uploadFilename.style.display = 'none';
+      DOM.btnRun.disabled = false;
+      DOM.runStatus.textContent = 'Ready: sample ledger loaded';
+      showToast('Sample data loaded', 'success');
+    }
 
+    // Run pipeline
+    DOM.btnRun.addEventListener('click', async function() {
+      if (state.isRunning) return;
       state.isRunning = true;
-      DOM.btnRun.classList.add('btn--loading');
+      DOM.btnRun.classList.add('btn-primary--loading');
       DOM.btnRun.disabled = true;
       DOM.runText.textContent = 'Processing...';
+      DOM.runStatus.textContent = 'Pipeline executing...';
 
       try {
-        const formData = new FormData();
-        if (state.useSample) {
-          formData.append('use_sample', 'true');
-        } else {
-          formData.append('csv_file', state.selectedFile);
-        }
+        var formData = new FormData();
+        if (state.useSample) formData.append('use_sample', 'true');
+        else formData.append('csv_file', state.selectedFile);
 
-        const response = await fetch('/api/run', {
-          method: 'POST',
-          body: formData,
-        });
-
-        const data = await response.json();
-
-        if (!data.success) {
-          throw new Error(data.error || 'Pipeline failed');
-        }
+        var resp = await fetch('/api/run', { method: 'POST', body: formData });
+        var data = await resp.json();
+        if (!data.success) throw new Error(data.error || 'Pipeline failed');
 
         renderResults(data);
         showToast(data.summary.emails_generated + ' emails generated', 'success');
-
+        DOM.runStatus.textContent = 'Pipeline complete';
       } catch (err) {
         showToast('Error: ' + err.message, 'error');
-        console.error('Pipeline error:', err);
+        DOM.runStatus.textContent = 'Pipeline failed';
       } finally {
         state.isRunning = false;
-        DOM.btnRun.classList.remove('btn--loading');
+        DOM.btnRun.classList.remove('btn-primary--loading');
         DOM.btnRun.disabled = false;
-        DOM.runText.textContent = 'Run Pipeline';
+        DOM.runText.textContent = 'Execute Pipeline';
       }
     });
 
     function renderResults(data) {
-      const { summary, emails, escalated, invalid } = data;
+      var s = data.summary;
 
-      if (summary.is_mock) {
-        DOM.modeBadge.className = 'app-header__badge app-header__badge--mock';
-        DOM.modeBadge.textContent = 'Mock Mode';
+      // Update terminal & mode
+      if (s.is_mock) {
+        DOM.modeBadge.textContent = 'CONNECTED · MOCK-LLM';
       } else {
-        DOM.modeBadge.className = 'app-header__badge app-header__badge--live';
-        DOM.modeBadge.textContent = 'Gemini API';
+        DOM.modeBadge.textContent = 'CONNECTED · GEMINI-2.0-FLASH';
       }
+      DOM.heroStatus.textContent = 'SYSTEM ONLINE · ' + s.total_loaded + ' INVOICES TRIAGED';
 
-      animateCounter('stat-total', summary.total_loaded);
-      animateCounter('stat-generated', summary.emails_generated);
-      animateCounter('stat-dry', summary.emails_dry_run);
-      animateCounter('stat-escalated', summary.escalated_count);
-      animateCounter('stat-skipped', summary.invalid_count);
-      animateCounter('stat-errors', summary.error_count);
+      // Update terminal body with real results
+      DOM.terminalBody.innerHTML =
+        '<div class="terminal__line terminal__line--cmd">ledger ingest invoices.csv</div>' +
+        '<div class="terminal__line">&gt; parsed ' + s.total_loaded + ' rows &middot; ' + s.invalid_count + ' invalid &middot; ' + (s.total_loaded - s.invalid_count) + ' in pipeline</div>' +
+        '<div class="terminal__line terminal__line--cmd">ledger triage --stage auto</div>' +
+        buildTerminalStages(data.emails, data.escalated) +
+        '<div class="terminal__line terminal__line--cmd">ledger draft --mode dry_run</div>' +
+        '<div class="terminal__line terminal__line--green">' + s.emails_generated + ' emails drafted &middot; 0 sent &middot; ' + s.emails_dry_run + ' dry-run</div>';
 
-      renderEmails(emails);
-      renderEscalated(escalated);
-      renderSkipped(invalid);
+      // Stats
+      document.getElementById('stat-total').textContent = s.total_loaded;
+      document.getElementById('stat-generated').textContent = s.emails_generated;
+      document.getElementById('stat-dry').textContent = s.emails_dry_run;
+      document.getElementById('stat-escalated').textContent = s.escalated_count;
+      document.getElementById('stat-skipped').textContent = s.invalid_count;
+      document.getElementById('stat-errors').textContent = s.error_count;
 
-      DOM.resultsSection.classList.add('results-section--visible');
+      renderEmails(data.emails);
+      renderEscalated(data.escalated);
+      renderSkipped(data.invalid);
 
-      setTimeout(() => {
+      DOM.resultsSection.classList.add('stats-section--visible');
+      setTimeout(function() {
         DOM.resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
+      }, 150);
     }
 
-    function animateCounter(elementId, target) {
-      const el = document.getElementById(elementId);
-      el.textContent = target;
+    function buildTerminalStages(emails, escalated) {
+      var counts = {1:0, 2:0, 3:0, 4:0};
+      emails.forEach(function(e) { if (counts[e.stage] !== undefined) counts[e.stage]++; });
+      var html = '';
+      if (counts[1]) html += '<div class="terminal__line terminal__line--green">Stage 1 &middot; gentle &middot; ' + counts[1] + '</div>';
+      if (counts[2]) html += '<div class="terminal__line terminal__line--green">Stage 2 &middot; firm &middot; ' + counts[2] + '</div>';
+      if (counts[3]) html += '<div class="terminal__line terminal__line--amber">Stage 3 &middot; urgent &middot; ' + counts[3] + '</div>';
+      if (counts[4]) html += '<div class="terminal__line terminal__line--amber">Stage 4 &middot; final &middot; ' + counts[4] + '</div>';
+      if (escalated.length) html += '<div class="terminal__line terminal__line--red">legal escalation &middot; ' + escalated.length + '</div>';
+      return html;
     }
 
-    const TONE_LABELS = {
-      warm_friendly: 'Warm',
-      polite_firm: 'Firm',
-      formal_serious: 'Serious',
-      stern_urgent: 'Urgent',
-      legal_escalation: 'Legal',
-    };
+    var TONE_MAP = { warm_friendly:'Gentle', polite_firm:'Firm', formal_serious:'Urgent', stern_urgent:'Final', legal_escalation:'Legal' };
 
     function renderEmails(emails) {
-      if (emails.length === 0) {
-        DOM.emailList.innerHTML =
-          '<div class="empty-state">' +
-            '<div class="empty-state__icon">--</div>' +
-            '<p class="empty-state__text">No emails generated. All invoices may be escalated or filtered.</p>' +
-          '</div>';
+      if (!emails.length) {
+        DOM.emailList.innerHTML = '<div class="empty-state">No emails generated.</div>';
         return;
       }
-
-      DOM.emailList.innerHTML = emails.map((email, i) =>
-        '<div class="email-card" id="email-card-' + i + '">' +
+      DOM.emailList.innerHTML = emails.map(function(e, i) {
+        return '<div class="email-card" id="ec-' + i + '">' +
           '<div class="email-card__header" onclick="toggleEmail(' + i + ')">' +
             '<div class="email-card__info">' +
-              '<div class="email-card__client">' + escapeHtml(email.client_name) + '</div>' +
+              '<div class="email-card__client">' + esc(e.client_name) + '</div>' +
               '<div class="email-card__meta">' +
-                '<span>' + escapeHtml(email.invoice_number) + '</span>' +
-                '<span>' + escapeHtml(email.amount_due) + '</span>' +
-                '<span>' + email.days_overdue + 'd overdue</span>' +
-                '<span>' + escapeHtml(email.contact_email) + '</span>' +
+                '<span>' + esc(e.invoice_number) + '</span>' +
+                '<span>' + esc(e.amount_due) + '</span>' +
+                '<span>' + e.days_overdue + 'd overdue</span>' +
+                '<span>' + esc(e.contact_email) + '</span>' +
               '</div>' +
             '</div>' +
-            '<span class="stage-badge stage-badge--' + email.stage + '">' +
-              'Stage ' + email.stage + ' &middot; ' + (TONE_LABELS[email.tone_used] || email.tone_used) +
-            '</span>' +
+            '<span class="stage-badge stage-badge--' + e.stage + '">Stage ' + e.stage + ' &middot; ' + (TONE_MAP[e.tone_used] || e.tone_used) + '</span>' +
             '<span class="email-card__toggle">&#9660;</span>' +
           '</div>' +
           '<div class="email-card__body">' +
-            '<div class="email-card__subject">Subject: ' + escapeHtml(email.subject) + '</div>' +
-            '<div class="email-card__content">' + escapeHtml(email.body) + '</div>' +
-            '<div class="email-card__justification">' + escapeHtml(email.justification) + '</div>' +
+            '<div class="email-card__subject">Subject: ' + esc(e.subject) + '</div>' +
+            '<div class="email-card__content">' + esc(e.body) + '</div>' +
+            '<div class="email-card__justification">' + esc(e.justification) + '</div>' +
           '</div>' +
-        '</div>'
-      ).join('');
+        '</div>';
+      }).join('');
     }
 
-    function toggleEmail(index) {
-      const card = document.getElementById('email-card-' + index);
-      card.classList.toggle('email-card--expanded');
-    }
+    function toggleEmail(i) { document.getElementById('ec-' + i).classList.toggle('email-card--expanded'); }
 
-    function renderEscalated(escalated) {
-      if (escalated.length === 0) {
-        DOM.escalatedContent.innerHTML =
-          '<div class="empty-state">' +
-            '<p class="empty-state__text">No invoices escalated to legal.</p>' +
-          '</div>';
+    function renderEscalated(list) {
+      if (!list.length) {
+        DOM.escalatedContent.innerHTML = '<div class="empty-state">No invoices escalated.</div>';
         return;
       }
-
-      DOM.escalatedContent.innerHTML =
-        '<table class="data-table">' +
-          '<thead><tr>' +
-            '<th>Invoice</th><th>Client</th><th>Amount</th><th>Days Overdue</th><th>Status</th>' +
-          '</tr></thead>' +
-          '<tbody>' +
-            escalated.map(row =>
-              '<tr>' +
-                '<td>' + escapeHtml(row.invoice_number) + '</td>' +
-                '<td>' + escapeHtml(row.client_name) + '</td>' +
-                '<td>' + escapeHtml(row.amount_due) + '</td>' +
-                '<td><strong style="color:var(--red-600)">' + row.days_overdue + '</strong></td>' +
-                '<td><span class="stage-badge stage-badge--escalate">Legal Escalation</span></td>' +
-              '</tr>'
-            ).join('') +
-          '</tbody>' +
-        '</table>';
+      DOM.escalatedContent.innerHTML = '<table class="data-table"><thead><tr>' +
+        '<th>Invoice</th><th>Client</th><th>Amount</th><th>Days</th><th>Status</th>' +
+        '</tr></thead><tbody>' +
+        list.map(function(r) {
+          return '<tr><td>' + esc(r.invoice_number) + '</td><td>' + esc(r.client_name) + '</td>' +
+            '<td>' + esc(r.amount_due) + '</td><td style="color:var(--red)">' + r.days_overdue + '</td>' +
+            '<td><span class="stage-badge stage-badge--escalate">Legal</span></td></tr>';
+        }).join('') + '</tbody></table>';
     }
 
-    function renderSkipped(invalid) {
-      if (invalid.length === 0) {
-        DOM.skippedContent.innerHTML =
-          '<div class="empty-state">' +
-            '<p class="empty-state__text">All rows were valid and processed.</p>' +
-          '</div>';
+    function renderSkipped(list) {
+      if (!list.length) {
+        DOM.skippedContent.innerHTML = '<div class="empty-state">All rows valid.</div>';
         return;
       }
-
-      DOM.skippedContent.innerHTML =
-        '<table class="data-table">' +
-          '<thead><tr>' +
-            '<th>Invoice</th><th>Client</th><th>Reason</th>' +
-          '</tr></thead>' +
-          '<tbody>' +
-            invalid.map(row =>
-              '<tr>' +
-                '<td>' + escapeHtml(row.invoice_number) + '</td>' +
-                '<td>' + escapeHtml(row.client_name) + '</td>' +
-                '<td style="color:var(--amber-700)">' + escapeHtml(row.reason) + '</td>' +
-              '</tr>'
-            ).join('') +
-          '</tbody>' +
-        '</table>';
+      DOM.skippedContent.innerHTML = '<table class="data-table"><thead><tr>' +
+        '<th>Invoice</th><th>Client</th><th>Reason</th>' +
+        '</tr></thead><tbody>' +
+        list.map(function(r) {
+          return '<tr><td>' + esc(r.invoice_number) + '</td><td>' + esc(r.client_name) + '</td>' +
+            '<td style="color:var(--amber)">' + esc(r.reason) + '</td></tr>';
+        }).join('') + '</tbody></table>';
     }
 
-    document.querySelectorAll('.tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        document.querySelectorAll('.tab').forEach(t => {
-          t.classList.remove('tab--active');
-          t.setAttribute('aria-selected', 'false');
-        });
-        document.querySelectorAll('.tab-panel').forEach(p => {
-          p.classList.remove('tab-panel--active');
-        });
-
-        tab.classList.add('tab--active');
-        tab.setAttribute('aria-selected', 'true');
-        const panelId = 'panel-' + tab.dataset.tab;
-        document.getElementById(panelId).classList.add('tab-panel--active');
+    // Tabs
+    document.querySelectorAll('.tab-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('tab-btn--active'); });
+        document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('tab-panel--active'); });
+        btn.classList.add('tab-btn--active');
+        document.getElementById('panel-' + btn.dataset.tab).classList.add('tab-panel--active');
       });
     });
 
-    let toastTimeout = null;
-
-    function showToast(message, type) {
-      type = type || 'success';
-      clearTimeout(toastTimeout);
-      DOM.toast.textContent = message;
-      DOM.toast.className = 'toast toast--' + type + ' toast--visible';
-      toastTimeout = setTimeout(() => {
-        DOM.toast.classList.remove('toast--visible');
-      }, 3500);
+    // Toast
+    var toastTimer = null;
+    function showToast(msg, type) {
+      clearTimeout(toastTimer);
+      DOM.toast.textContent = msg;
+      DOM.toast.className = 'toast toast--' + (type || 'success') + ' toast--visible';
+      toastTimer = setTimeout(function() { DOM.toast.classList.remove('toast--visible'); }, 3500);
     }
 
-    function escapeHtml(str) {
-      if (!str) return '';
-      const div = document.createElement('div');
-      div.textContent = String(str);
-      return div.innerHTML;
+    function esc(s) {
+      if (!s) return '';
+      var d = document.createElement('div'); d.textContent = String(s); return d.innerHTML;
     }
   </script>
-</body>
-</html>
+</body></html>
