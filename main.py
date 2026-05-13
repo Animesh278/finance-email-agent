@@ -12,6 +12,7 @@ import pandas as pd
 from agents.credit_followup import CreditFollowUpAgent
 from config.settings import DATA_DIR, OUTPUT_DIR
 
+
 def run_pipeline(input_file: str, dry_run: bool = True):
     """
     Runs the full end-to-end follow-up pipeline.
@@ -23,11 +24,12 @@ def run_pipeline(input_file: str, dry_run: bool = True):
         print(f"❌ Error: File {input_file} not found.")
         return
 
+
     df = pd.read_csv(input_file)
     clients = df.to_dict('records')
     
     # 2. Process with Agent
-    agent = CreditFollowUpAgent()
+agent = CreditFollowUpAgent(api_key=os.environ.get("GEMINI_API_KEY"))
     results = agent.process_batch(clients)
     
     # 3. Output Results
@@ -44,6 +46,7 @@ def run_pipeline(input_file: str, dry_run: bool = True):
             pd.DataFrame(results['escalated']).to_excel(writer, sheet_name='Escalated', index=False)
             
     print(f"📊 Detailed report saved to: {output_path}")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Finance Credit Follow-Up Agent")
