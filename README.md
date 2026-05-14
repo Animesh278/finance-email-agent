@@ -1,4 +1,4 @@
-# Finance Credit Follow-Up Email Agent
+# 🏦 Finance Credit Follow-Up Email Agent
 
 **AI Enablement Internship · Task 2**
 
@@ -6,99 +6,270 @@ An intelligent agent that automatically generates professional, tone-escalating 
 
 ---
 
-## Table of Contents
-- [Features](#-features)
-- [Tech Stack](#-tech-stack)
-- [Project Structure](#-project-structure)
-- [Logic Flow](#-logic-flow)
-- [Security & Compliance](#-security--compliance)
-- [Installation & Usage](#-installation--usage)
-- [Monitoring & Logs](#-monitoring--logs)
+## 📋 Table of Contents
+
+- [Features](#features)
+- [Architecture](#architecture)
+- [Technical Stack & Decision Log](#technical-stack--decision-log)
+- [Setup & Installation](#setup--installation)
+- [Usage](#usage)
+- [Tone Escalation Matrix](#tone-escalation-matrix)
+- [Security Risk Mitigation](#security-risk-mitigation)
+- [Project Structure](#project-structure)
 
 ---
 
-## Features
-- **Tone Escalation**: Automatically adjusts email tone from "Gentle Reminder" (Stage 1) to "Final Notice" (Stage 4) and "Legal Escalation" based on days past due.
-- **Mock LLM Support**: Fully functional demo mode without requiring API keys (uses deterministic mock generation).
-- **Audit Compliance**: Generates a tamper-evident CSV audit log and a JSON email log.
-- **PII Protection**: Automatically masks sensitive data (Internal IDs, full names) in logs.
-- **Modern Web Dashboard**: Sleek Flask-based UI for CSV uploads and results visualization.
+## ✨ Features
+
+- **4-Stage Tone Escalation** — Automatically adjusts email tone from warm/friendly to stern/urgent based on days overdue
+- **Legal Escalation** — Invoices 30+ days overdue are flagged for legal review (no email sent)
+- **Mock & Real LLM Modes** — Works without an API key (mock mode) or with Google Gemini for AI-generated emails
+- **Dry-Run Mode** — Test the full pipeline without sending real emails
+- **Pydantic Validation** — Strict schema validation on all LLM outputs
+- **Audit Trail** — Every action is logged to `output/audit_trail.csv`
+- **PII Masking** — Sensitive data is masked in console/debug logs
+- **Mission Control UI** — A professional, dark-mode cyber-terminal dashboard (LEDGER//OPS aesthetic) for running and visualizing the pipeline
 
 ---
 
-## Tech Stack
-- **Backend**: Python 3.10+, Flask
-- **LLM**: Claude 3.5 Sonnet (via Anthropic SDK)
-- **Data**: Pandas (CSV processing)
-- **Validation**: Pydantic (Schema enforcement)
-- **Frontend**: Tailwind CSS, Lucide Icons, Glassmorphism UI
+## 🏗 Architecture
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                        CLI (main.py)                         │
+│                 --file  --mode  --verbose                     │
+└──────────────┬───────────────────────────────────────────────┘
+               │
+               ▼
+┌──────────────────────────┐
+│  STEP 1: Data Ingestion  │ ← Read CSV, calculate days_overdue
+│  STEP 2: Triage Agent    │ ← Classify stages 1–4 or ESCALATE
+│  (agents/triage_agent.py)│
+└──────────────┬───────────┘
+               │
+        ┌──────┴──────┐
+        ▼             ▼
+┌──────────────┐ ┌──────────────────┐
+│ Stages 1–4   │ │ ESCALATE (30+)   │
+│              │ │ → flag_legal     │
+│ ▼            │ │ → NO email       │
+│ Email Gen    │ │ → audit log only │
+│ (Mock/Real)  │ └──────────────────┘
+└──────┬───────┘
+       │
+       ▼
+┌──────────────────────────┐
+│  STEP 4: Send / Dry-Run  │ ← SMTP or log to email_log.json
+│  STEP 5: Audit Logging   │ ← Append to audit_trail.csv
+│  STEP 6: Summary Report  │ ← Print stats to console
+└──────────────────────────┘
+```
 
 ---
 
-## Project Structure
+## 🔧 Technical Stack & Decision Log
+
+### 1. LLM Chosen
+
+**Model:** `gemini-2.0-flash` (Google)
+
+Gemini 2.0 Flash was chosen for several reasons:
+- **Cost & Context Window** — It offers a massive 1M token context window at a fraction of the cost of GPT-4o or Claude 3.5 Sonnet, making it ideal for processing large batches of invoice data economically.
+- **Structured JSON output reliability** — Gemini consistently produces clean, parseable JSON when instructed, reducing post-processing errors without needing complex tool-calling overhead.
+- **Free tier availability** — Generous free tier for development, testing, and smaller production runs.
+- **Speed** — Flash model optimized for low-latency responses, crucial for real-time dashboard updates.
+- **Fallback handling** — If the API call fails (e.g. quota exceeded), the agent automatically falls back to the MockEmailGenerator
+
+> **Note:** When no API key is configured, the agent automatically uses a `MockEmailGenerator` that produces deterministic, stage-appropriate emails following all tone rules.
+
+### 2. Agent Framework
+
+**Framework:** Pure Python Orchestrator (no LangChain)
+
+Architecture pattern: **Sequential Pipeline** — a simple, linear 6-step chain where each step's output feeds into the next. This was chosen over a ReAct loop because the task is deterministic (no tool selection needed) and the flow is always the same.
+
+```
+CSV Input → Triage → [Stage 1-4] → Email LLM → Send/Log → Audit → Summary
+                   → [ESCALATE]  → Flag Legal → Audit → Summary
+```
+
+### 3. Prompt Design
+
+The system prompt (defined in `agents/email_generator.py`) enforces:
+- **Output schema in the system prompt** — Ensures the LLM always returns the exact JSON structure, preventing format drift across runs
+- **Hallucination guardrails** — All personalisation fields (name, invoice number, amount, etc.) are injected from CSV data, NOT generated by the LLM. The LLM composes the email body but cannot fabricate facts
+- **Tone escalation via prompt rules AND code logic** — The triage agent classifies stages in code (deterministic), and the prompt instructs the LLM on which tone to use per stage (enforced by both prompt rules and Pydantic validation)
+
+**Key System Prompt Snippet:**
 ```text
-finance-email-agent/
-├── data/               # Input data (CSV)
-├── logs/               # Application logs
-├── output/             # Generated emails & audit trails
-├── src/
-│   ├── config.py       # Constants & Business Logic settings
-│   ├── models.py       # Pydantic schemas
-│   ├── processor.py    # Invoice triage & logic
-│   └── generator.py    # LLM & Mock email generation
-├── templates/          # Flask HTML templates
-├── main.py             # CLI Orchestrator
-├── web.py              # Flask Web Server
-└── requirements.txt    # Dependencies
+You are a Finance Credit Follow-Up Email Agent for a B2B company.
+Your sole job is to generate professional, personalised payment reminder
+emails for overdue invoices -- nothing else.
+
+... [INPUT SCHEMA OMITTED] ...
+
+TONE ESCALATION RULES:
+| days_overdue  | Stage | Tone               |
+|---------------|-------|--------------------|
+| 1-7 days      |   1   | Warm & Friendly    |
+| 8-14 days     |   2   | Polite but Firm    |
+| 15-21 days    |   3   | Formal & Serious   |
+| 22-30 days    |   4   | Stern & Urgent     |
+| 30+ days      |   --  | DO NOT email -> return ESCALATE |
+
+OUTPUT FORMAT -- STRICT JSON ONLY:
+{
+  "stage"         : <integer 1-4> or "ESCALATE",
+  "action"        : "send_email" | "flag_legal",
+  "tone_used"     : "warm_friendly" | "polite_firm" | "formal_serious" | "stern_urgent" | "legal_escalation",
+  "subject"       : "<email subject line>" | null,
+  "body"          : "<full plain-text email body>" | null,
+  "justification" : "<one sentence: why this stage was chosen>"
+}
+
+MANDATORY EMAIL CONTENT RULES:
+1. Every email MUST contain: client name, invoice number, amount due (Rs.X,XX,XXX), due date (DD MMM YYYY), days overdue, payment link, finance contact.
+2. NEVER fabricate any field. If missing, write "[MISSING]".
+3. Stage 1 -> "Hi <first name>," | Stage 2-4 -> "Dear Mr./Ms. <last name>,"
+4. Stage 3 -> must mention: "continued non-payment may impact your credit terms"
+5. Stage 4 -> must mention: "escalation to our legal and recovery team within 24 hours"
+6. Keep under 200 words. Be concise and professional.
+7. Sign off with finance_contact name and phone.
+8. No disclaimers, legal boilerplate, or AI-generated footers.
 ```
 
----
+### 4. Security Mitigations
 
-## Logic Flow
-1. **Ingestion**: Load invoices from CSV.
-2. **Triage**: 
-   - `0-7 days`: Stage 1 (Gentle)
-   - `8-14 days`: Stage 2 (Firm)
-   - `15-30 days`: Stage 3 (Urgent)
-   - `>30 days`: Stage 4 (Final)
-   - `>35 days`: Escalated to Legal
-3. **Generation**: Mock or Real LLM generates the email body based on the Stage.
-4. **Output**: Write to `email_log.json` and `audit_trail.csv`.
+See the [Security Risk Mitigation](#security-risk-mitigation) section below. Top 3:
+1. **Prompt Injection** — Input data is passed as structured JSON, not interpolated into instructions. Pydantic validates all outputs.
+2. **API Key Exposure** — All secrets loaded via `.env` + python-dotenv. `.gitignore` excludes `.env`. `.env.example` provided as template.
+3. **Hallucination** — All factual fields come from the CSV data source. The LLM only composes prose; it cannot invent invoice numbers or amounts.
 
 ---
 
-## Security & Compliance
-- **Dry-Run Mode**: No emails are actually sent; they are saved for review.
-- **Audit Trail**: Every action is logged with a timestamp and status.
-- **PII Masking**: Customer names are masked in the audit CSV (e.g., `An*** Sh***`) to comply with privacy standards.
+## 🚀 Setup & Installation
 
----
+### Prerequisites
+- Python 3.10+
+- pip
 
-## Installation & Usage
+### Steps
 
-### 1. Clone & Install
 ```bash
-git clone https://github.com/Animesh278/finance-email-agent.git
+# 1. Navigate to the project directory
 cd finance-email-agent
+
+# 2. Create a virtual environment (recommended)
+python -m venv venv
+venv\Scripts\activate        # Windows
+# source venv/bin/activate   # macOS/Linux
+
+# 3. Install dependencies
 pip install -r requirements.txt
+
+# 4. Configure environment variables
+# Copy the template and fill in your values (optional — mock mode works without keys)
+copy .env.example .env
+# Edit .env with your API keys if available
 ```
 
-### 2. Run CLI
+---
+
+## 📖 Usage
+
+### Basic (Dry-Run with Mock LLM)
 ```bash
-python main.py --file data/sample_invoices.csv --mode dry_run --verbose
+python main.py --file data/sample_invoices.csv
 ```
 
-### 3. Run Web UI
+### Verbose Output
+```bash
+python main.py --file data/sample_invoices.csv --verbose
+```
+
+### Web Dashboard (Mission Control UI)
 ```bash
 python web.py
-# Visit http://localhost:5000
+# Open http://localhost:5000 in your browser
+# Provides a cyber-terminal visual interface to upload CSVs, run the pipeline, and view drafts.
+```
+
+### Send Mode (requires SMTP credentials in .env)
+```bash
+python main.py --file data/sample_invoices.csv --mode send
+```
+
+### CLI Options
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--file`, `-f` | Path to CSV file with invoice data | *required* |
+| `--mode`, `-m` | `dry_run` or `send` | `dry_run` |
+| `--verbose`, `-v` | Enable DEBUG-level logging | `False` |
+
+---
+
+## 📊 Tone Escalation Matrix
+
+| Days Overdue | Stage | Tone | Subject Example | Action |
+|:---:|:---:|---|---|---|
+| 1–7 | 1 | Warm & Friendly | "Friendly Reminder: Invoice INV-2026-001 — Payment Due" | Send email |
+| 8–14 | 2 | Polite but Firm | "Payment Reminder: Invoice INV-2026-002 — 10 Days Overdue" | Send email |
+| 15–21 | 3 | Formal & Serious | "Urgent: Invoice INV-2026-003 — Overdue by 18 Days" | Send email |
+| 22–30 | 4 | Stern & Urgent | "FINAL NOTICE: Invoice INV-2026-004 — Immediate Payment Required" | Send email |
+| 30+ | — | Legal Escalation | *No email generated* | Flag for legal |
+
+### Stage-Specific Rules
+- **Stage 1:** Uses first name only ("Hi Rajesh,")
+- **Stage 2–4:** Uses formal address ("Dear Mr./Ms. Kapoor,")
+- **Stage 3:** Must mention credit terms impact
+- **Stage 4:** Must mention 24-hour legal escalation
+
+---
+
+## 🔒 Security Risk Mitigation
+
+| # | Risk | Description | Mitigation Implemented |
+|---|------|-------------|----------------------|
+| 1 | **Prompt Injection** | Malicious data in CSV could manipulate LLM behaviour | Input data is passed as structured JSON within a fixed user prompt template. The system prompt strictly defines output format. Pydantic v2 validates every LLM response against `EmailOutput` schema — any deviation is rejected and logged as an error. |
+| 2 | **Data Privacy / PII** | Invoice CSVs contain personal emails, names, and financial amounts | All processing is local. PII is masked in console/debug logs (emails → `***@***.com`, names → `***oor`). Only the minimum necessary data is sent to the cloud LLM. |
+| 3 | **API Key Exposure** | Gemini and SMTP credentials must never appear in source code | All secrets are loaded from `.env` via python-dotenv. `.gitignore` excludes `.env`. `.env.example` provides a safe template. For production, a secrets manager (AWS SSM, HashiCorp Vault) is recommended. |
+| 4 | **Hallucination / Wrong Output** | LLM may invent invoice numbers, amounts, or client names | All personalisation fields are injected from the CSV data source — the LLM composes email prose but cannot fabricate facts. Pydantic validates the output schema. Human review is recommended before Stage 4 emails. |
+| 5 | **Unauthorised Agent Triggering** | If exposed as an API, anyone could trigger bulk emails | The agent is CLI-only by default — no network endpoints. If wrapped in FastAPI, API key authentication and rate limiting must be added. No unauthenticated endpoints. |
+| 6 | **Email Spoofing** | Emails could appear to come from an unverified domain | Only verified sender domains should be used. SPF/DKIM/DMARC records are required in production. `dry_run` mode (default) prevents accidental real sends during development. |
+
+---
+
+## 📁 Project Structure
+
+```
+finance-email-agent/
+├── main.py                      <- CLI entry point & orchestrator
+├── web.py                       <- Flask web server & REST API
+├── agents/
+│   ├── __init__.py
+│   ├── email_generator.py       <- Pydantic model, Mock & Real LLM generators
+│   └── triage_agent.py          <- Days overdue calculation & stage classification
+├── config/
+│   ├── __init__.py
+│   └── settings.py              <- Environment variable loader
+├── data/
+│   └── sample_invoices.csv      <- 6-row test dataset
+├── templates/
+│   └── index.html               <- Web dashboard HTML
+├── static/
+│   └── style.css                <- Dashboard styles
+├── output/                      <- Created at runtime
+│   ├── email_log.json           <- Generated emails (dry-run output)
+│   └── audit_trail.csv          <- Full audit trail
+├── .env                         <- Local environment variables (not committed)
+├── .env.example                 <- Template for environment variables
+├── .gitignore
+├── requirements.txt
+└── README.md
 ```
 
 ---
 
-## Monitoring & Logs
-- **Audit Trail**: `output/audit_trail.csv`
-- **Email Archive**: `output/email_log.json`
+## 📄 License
 
----
-*Created as part of the AI Enablement Internship.*
+This project was created as part of the AI Enablement Internship — Task 2.
